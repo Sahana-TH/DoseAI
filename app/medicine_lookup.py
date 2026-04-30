@@ -106,5 +106,5 @@ if __name__ == "__main__":
     print("Testing DoseAI medicine lookup...")
     
     # Test with a common medicine
-    result = fetch_medicine_info("ibuprofen")
+    result = fetch_medicine_info("metformin")
     pretty_print_medicine(result)
