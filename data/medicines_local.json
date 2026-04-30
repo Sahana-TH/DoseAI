@@ -22,5 +22,23 @@
     "side_effects": "Headache, diarrhea, nausea, stomach pain, dizziness. Long-term use may affect magnesium levels.",
     "overdose": "No established toxic dose. Symptoms may include confusion, blurred vision, rapid heartbeat. Seek medical help.",
     "warnings": "Long-term use may increase risk of bone fractures and vitamin B12 deficiency. Inform doctor of all medications."
+  },
+
+  "azithromycin": {
+    "name": "Azithromycin (Azithral 500)",
+    "usage": "An antibiotic used to treat bacterial infections including throat infections (pharyngitis), chest infections (pneumonia, bronchitis), ear infections, sinus infections, and certain skin infections. Commonly prescribed in India for typhoid and COVID-19 related secondary infections.",
+    "dosage": "Adults: 500mg once daily for 3 to 5 days, as prescribed by doctor. Take on an empty stomach or with food. Complete the full course even if you feel better. Children: dose based on body weight — strictly as per doctor's advice.",
+    "side_effects": "Common: nausea, vomiting, diarrhea, stomach pain, headache. Less common: dizziness, skin rash, loss of appetite. Serious (rare): irregular heartbeat (QT prolongation), severe allergic reaction (difficulty breathing, swelling of face), liver problems (yellowing of skin/eyes).",
+    "overdose": "Overdose may cause severe nausea, vomiting, temporary hearing loss, and diarrhea. Do not double the dose if a dose is missed. Seek immediate medical attention if overdose is suspected.",
+    "warnings": "Do not use if allergic to azithromycin or other macrolide antibiotics. Inform your doctor about heart conditions, liver disease, or kidney problems. Do not take antacids containing aluminium or magnesium within 2 hours of this medicine — they reduce absorption. Avoid alcohol. Do not use antibiotics without a prescription — misuse causes antibiotic resistance."
+  },
+
+  "metformin": {
+    "name": "Metformin (Glycomet 500 / 850 / 1000)",
+    "usage": "Used to treat Type 2 diabetes mellitus (non-insulin-dependent diabetes). Helps control blood sugar levels by reducing glucose production in the liver and improving the body's sensitivity to insulin. Often the first medicine prescribed when diet and exercise alone do not control blood sugar. Also used in polycystic ovary syndrome (PCOS) treatment.",
+    "dosage": "Adults: Usually started at 500mg twice daily or 850mg once daily with meals. Dose is gradually increased by doctor based on blood sugar levels. Maximum dose: 2500mg to 3000mg per day. Always take with food to reduce stomach side effects. Do not crush or chew extended-release tablets.",
+    "side_effects": "Very common (especially when starting): nausea, vomiting, diarrhea, stomach discomfort, loss of appetite, metallic taste in mouth — these usually improve after a few weeks. Serious (rare): lactic acidosis — symptoms are muscle pain, weakness, difficulty breathing, stomach pain, feeling cold, dizziness, slow heartbeat. Seek emergency care immediately if these occur.",
+    "overdose": "Overdose can cause low blood sugar (hypoglycemia) when combined with other diabetes medicines, and lactic acidosis — a rare but serious buildup of lactic acid in the blood. Symptoms: weakness, unusual muscle pain, trouble breathing. Go to emergency room immediately.",
+    "warnings": "Do not take if you have kidney disease (eGFR below 30), liver disease, or heart failure. Stop taking 48 hours before any surgery or CT scan with contrast dye — restart only after doctor's clearance. Inform doctor if you drink alcohol regularly (increases risk of lactic acidosis). Monitor blood sugar regularly. Vitamin B12 levels may decrease with long-term use — get periodic blood tests."
   }
 }

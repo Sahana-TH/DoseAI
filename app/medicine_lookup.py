@@ -108,3 +108,42 @@ if __name__ == "__main__":
     # Test with a common medicine
     result = fetch_medicine_info("metformin")
     pretty_print_medicine(result)
+
+   # Add this to the bottom of app/medicine_lookup.py
+
+import json
+import os
+
+def fetch_local_medicine(medicine_name: str) -> dict:
+    """
+    Looks up a medicine from the local JSON fallback database.
+    
+    Args:
+        medicine_name (str): lowercase medicine name
+    
+    Returns:
+        dict: medicine info if found, or dict with 'error' key if not
+    """
+    try:
+        # Build path relative to this file's location
+        data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'medicines_local.json')
+        
+        with open(data_path, "r") as f:
+            local_data = json.load(f)
+        
+        # Exact match first
+        if medicine_name in local_data:
+            return local_data[medicine_name]
+        
+        # Partial match — e.g., "dolo" matches "dolo 650"
+        for key in local_data:
+            if medicine_name in key or key in medicine_name:
+                return local_data[key]
+        
+        return {"error": f"'{medicine_name}' not in local database."}
+    
+    except FileNotFoundError:
+        return {"error": "Local medicine database file not found."}
+    
+    except json.JSONDecodeError:
+        return {"error": "Local medicine database is corrupted."} 
