@@ -1,0 +1,26 @@
+{
+  "dolo 650": {
+    "name": "Dolo 650",
+    "usage": "Used to relieve mild to moderate pain and to reduce fever. Commonly used for headaches, toothaches, cold and flu symptoms.",
+    "dosage": "Adults: 1 tablet (650mg) every 4-6 hours as needed. Do not exceed 4 tablets in 24 hours. Take with or without food.",
+    "side_effects": "Generally well tolerated. Rare side effects include nausea, stomach upset, and allergic skin reactions.",
+    "overdose": "Overdose can cause serious liver damage. Symptoms: nausea, vomiting, abdominal pain. Seek emergency help immediately.",
+    "warnings": "Do not take with other paracetamol-containing products. Avoid alcohol. Use caution in liver disease."
+  },
+  "crocin": {
+    "name": "Crocin",
+    "usage": "Paracetamol tablet used for fever, headache, body pain, toothache, and cold symptoms.",
+    "dosage": "Adults: 1-2 tablets every 4-6 hours. Children: as directed by doctor. Do not exceed recommended dose.",
+    "side_effects": "Rare: skin rash, nausea. Serious: liver problems with prolonged use or overdose.",
+    "overdose": "Risk of liver failure with high doses. Do not exceed 4g (4000mg) per day. Immediate medical attention required for overdose.",
+    "warnings": "Consult doctor if symptoms persist beyond 3 days. Avoid in severe liver or kidney disease."
+  },
+  "pantoprazole": {
+    "name": "Pantoprazole",
+    "usage": "Treats acid reflux, GERD (gastroesophageal reflux disease), stomach ulcers, and conditions of excess stomach acid.",
+    "dosage": "Usually 40mg once daily, taken 30-60 minutes before a meal. Duration as prescribed by doctor.",
+    "side_effects": "Headache, diarrhea, nausea, stomach pain, dizziness. Long-term use may affect magnesium levels.",
+    "overdose": "No established toxic dose. Symptoms may include confusion, blurred vision, rapid heartbeat. Seek medical help.",
+    "warnings": "Long-term use may increase risk of bone fractures and vitamin B12 deficiency. Inform doctor of all medications."
+  }
+}
