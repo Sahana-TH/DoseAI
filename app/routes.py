@@ -120,24 +120,50 @@ def speak():
 
 
 # ── ROUTE 5: OCR Scan ─────────────────────────────────────────
+# ── ROUTE 5: OCR Scan ─────────────────────────────────────────
 @medicine_bp.route("/scan", methods=["POST"])
 def scan_medicine_image():
+    """
+    Accepts image from either:
+    - File upload (multipart form-data with key 'image')
+    - Raw bytes (content-type: image/jpeg or image/png)
+
+    Returns:
+        JSON: {"raw_text": "...", "medicine_candidates": [...]}
+    """
     from PIL import Image
+    from app.scanner import extract_text_from_image
     import io
 
-    if "image" not in request.files:
-        return jsonify({"error": "No image file provided."}), 400
-
-    file = request.files["image"]
-
-    if file.filename == "":
-        return jsonify({"error": "Empty filename."}), 400
-
     try:
-        from app.scanner import extract_text_from_image
-        image_bytes = file.read()
-        pil_image   = Image.open(io.BytesIO(image_bytes))
-        result      = extract_text_from_image(pil_image)
+        # ── Method 1: File upload (multipart/form-data) ───────
+        if request.files and "image" in request.files:
+            file = request.files["image"]
+            if file.filename == "":
+                return jsonify({"error": "Empty filename."}), 400
+
+            image_bytes = file.read()
+            pil_image   = Image.open(io.BytesIO(image_bytes))
+
+        # ── Method 2: Raw bytes (from st.camera_input) ───────
+        elif request.data and len(request.data) > 0:
+            pil_image = Image.open(io.BytesIO(request.data))
+
+        # ── Method 3: JSON with base64 image ─────────────────
+        elif request.is_json:
+            import base64
+            data       = request.get_json()
+            img_base64 = data.get("image_base64", "")
+            if not img_base64:
+                return jsonify({"error": "No image data in JSON."}), 400
+            img_bytes = base64.b64decode(img_base64)
+            pil_image = Image.open(io.BytesIO(img_bytes))
+
+        else:
+            return jsonify({"error": "No image provided. Send as form-data, raw bytes, or base64 JSON."}), 400
+
+        # Run OCR
+        result = extract_text_from_image(pil_image)
 
         if "error" in result:
             return jsonify(result), 500
