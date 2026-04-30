@@ -122,3 +122,39 @@ def list_local_medicines():
     
     except FileNotFoundError:
         return jsonify({"error": "Local medicine database not found."}), 500
+    
+    # Add this import at the top of routes.py
+from app.voice_assistant import text_to_speech, speak_medicine_info
+import os
+
+# ── ROUTE 5: Generate Audio ───────────────────────────────────
+@medicine_bp.route("/speak", methods=["POST"])
+def speak():
+    """
+    Accepts medicine info + language, returns audio file path.
+    
+    POST body (JSON):
+    {
+        "medicine_info": { ...medicine dict... },
+        "language": "English",
+        "section": "summary"
+    }
+    """
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+    medicine_info = data.get("medicine_info", {})
+    language = data.get("language", "English")
+    section = data.get("section", "summary")
+    
+    if not medicine_info:
+        return jsonify({"error": "medicine_info is required"}), 400
+    
+    result = speak_medicine_info(medicine_info, language, section)
+    
+    if "error" in result:
+        return jsonify(result), 500
+    
+    return jsonify({"success": True, "message": f"Speaking {section} in {language}"}), 200
