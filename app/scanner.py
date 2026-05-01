@@ -141,68 +141,70 @@ def extract_text_from_image(image_input) -> dict:
 
 
 def extract_medicine_candidates(raw_text: str) -> list:
-    """
-    Extracts likely medicine names from OCR text.
-
-    Strategy:
-    - Medicine names are usually in the first few lines
-    - They are 3-25 characters long
-    - Filter out common non-medicine words
-    - Return top 5 candidates
-    """
-
-    IGNORE_WORDS = {
-        "tablets", "tablet", "capsules", "capsule", "syrup",
-        "injection", "each", "contains", "manufactured", "marketed",
-        "store", "below", "keep", "out", "children", "reach",
-        "before", "expiry", "batch", "mfg", "exp", "ltd", "pvt",
-        "india", "pharma", "laboratories", "lab", "healthcare",
-        "strip", "pack", "box", "use", "only", "not", "for",
-        "the", "and", "with", "this", "that", "from", "drug",
-        "read", "leaflet", "schedule", "rx", "prescription",
-        "composition", "indications", "dosage", "warning"
-    }
-
-    lines      = raw_text.split('\n')
+    
     candidates = []
-
-    for line in lines[:10]:  # Top 10 lines
-        line = line.strip()
-        if not line or len(line) > 60:
-            continue
-
-        words = re.findall(r'[A-Za-z]+', line)
-
-        for word in words:
-            word_lower = word.lower()
-
-            if word_lower in IGNORE_WORDS:
-                continue
-            if len(word) < 3 or len(word) > 25:
-                continue
-            if word.isupper() and len(word) <= 2:
-                continue
-            # Skip words that are all digits
-            if word.isdigit():
-                continue
-
-            candidates.append(word.title())
-
-    # Also try to detect "Name + Number" patterns like "Dolo 650", "Crocin 500"
-    # This regex finds patterns like "Ibuprofen 400" or "Metformin 500mg"
-    combo_pattern = re.findall(
-        r'([A-Za-z]{3,20})\s*(\d{2,4})\s*(mg|ml|g)?',
-        raw_text,
-        re.IGNORECASE
+    text_lower = raw_text.lower()
+    
+    # ── STEP 1: Direct keyword search in raw text ─────────────
+    # These are checked character by character in the OCR output
+    DIRECT_SEARCH = [
+        ("paracetamol",  "Paracetamol"),
+        ("dolo",         "Dolo 650"),
+        ("dolo-650",     "Dolo 650"),
+        ("dolo 650",     "Dolo 650"),
+        ("ibuprofen",    "Ibuprofen"),
+        ("crocin",       "Crocin"),
+        ("azithromycin", "Azithromycin"),
+        ("metformin",    "Metformin"),
+        ("pantoprazole", "Pantoprazole"),
+        ("amoxicillin",  "Amoxicillin"),
+        ("cetirizine",   "Cetirizine"),
+        ("omeprazole",   "Omeprazole"),
+        ("aspirin",      "Aspirin"),
+        ("combiflam",    "Combiflam"),
+        ("sinarest",     "Sinarest"),
+        ("allegra",      "Allegra"),
+    ]
+    
+    for keyword, display_name in DIRECT_SEARCH:
+        if keyword in text_lower:
+            if display_name not in candidates:
+                candidates.append(display_name)
+    
+    # ── STEP 2: Regex pattern for "Name + Number" combos ──────
+    combo_matches = re.findall(
+        r'([A-Za-z]{3,20})\s*[\-]?\s*(\d{2,4})\s*(mg|ml|g|mcg)?',
+        raw_text, re.IGNORECASE
     )
-    for match in combo_pattern:
-        name   = match[0].title()
-        number = match[1]
-        combo  = f"{name} {number}"
-        if name.lower() not in IGNORE_WORDS:
-            candidates.insert(0, combo)  # Add to front — high confidence
+    for match in combo_matches:
+        name  = match[0].strip().title()
+        num   = match[1].strip()
+        combo = f"{name} {num}"
+        IGNORE = {"tablets", "tablet", "each", "strip", "pack", "price", "batch", "mfg", "exp"}
+        if name.lower() not in IGNORE and len(name) >= 3:
+            if combo not in candidates:
+                candidates.append(combo)
 
-    # Remove duplicates while preserving order
+    # ── STEP 3: If nothing found yet, return top words ────────
+    if not candidates:
+        IGNORE_WORDS = {
+            "tablets", "tablet", "capsules", "capsule", "each",
+            "contains", "store", "keep", "children", "before",
+            "expiry", "batch", "mfg", "exp", "ltd", "pvt",
+            "india", "pharma", "strip", "pack", "box", "use",
+            "the", "and", "with", "from", "drug", "price",
+            "read", "schedule", "prescription", "side", "uses"
+        }
+        lines = raw_text.split('\n')
+        for line in lines[:8]:
+            words = re.findall(r'[A-Za-z]{4,20}', line)
+            for word in words:
+                if word.lower() not in IGNORE_WORDS:
+                    titled = word.title()
+                    if titled not in candidates:
+                        candidates.append(titled)
+
+    # Remove duplicates
     seen   = set()
     unique = []
     for c in candidates:
@@ -210,4 +212,4 @@ def extract_medicine_candidates(raw_text: str) -> list:
             seen.add(c.lower())
             unique.append(c)
 
-    return unique[:6]  # Top 6 candidates
+    return unique[:6]

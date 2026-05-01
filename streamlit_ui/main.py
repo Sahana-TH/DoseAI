@@ -282,21 +282,19 @@ def main():
                             with btn_cols[i % 3]:
                                 if st.button(f"💊 {candidate}", key=f"c_{i}_{candidate}", use_container_width=True):
                                     with st.spinner(f"Looking up {candidate}..."):
-                                        med = search_medicine(candidate)
-                                    if "error" not in med:
+                                     med = search_medicine(candidate)
+    
+                                    if med is None:
+                                        st.error("No response from backend.")
+                                    elif "error" in med:
+                                        st.warning(f"'{candidate}' not found in database.")
+                                        st.info("💡 Try searching manually in the 🔍 Search Medicine tab.")
+                                    else:
                                         st.session_state["medicine_info"] = med
                                         st.session_state["searched"]      = True
-                                        st.success("✅ Found! Go to 🔍 Search Medicine tab to see details.")
-                                    else:
-                                        st.error(f"❌ {med['error']}")
-                    else:
-                        st.warning("⚠️ No medicine names detected. Try a clearer image.")
-                        st.markdown("""
-                        **Tips:**
-                        - 📸 Get closer to the medicine name
-                        - 💡 Use bright lighting
-                        - 📐 Keep strip flat and straight
-                        """)
+                                        st.success(f"✅ Found: {med.get('name', candidate)}")
+                                        st.divider()
+                                        show_medicine_card(med)
 
 
 if __name__ == "__main__":
