@@ -63,7 +63,7 @@ def speak_section(medicine_info: dict, language: str, section: str):
             st.error(f"Error: {str(e)}")
 
 
-def show_medicine_card(info: dict):
+def show_medicine_card(info: dict, key_suffix: str = ""):
     """Shows medicine info in a clean card layout."""
 
     # Source badge
@@ -109,27 +109,27 @@ def show_medicine_card(info: dict):
         language = st.selectbox(
             "Language",
             ["English", "Hindi", "Kannada"],
-            key="lang_select"
+            key=f"lang_select_{key_suffix}"
         )
     with vc2:
         section = st.selectbox(
             "Section",
             ["summary", "dosage", "side_effects", "overdose", "warnings", "full"],
-            key="section_select"
+            key=f"section_select_{key_suffix}"
         )
 
     b1, b2, b3, b4 = st.columns(4)
     with b1:
-        if st.button("▶️ Summary", use_container_width=True):
+        if st.button("▶️ Summary", use_container_width=True, key=f"btn_sum_{key_suffix}"):
             speak_section(info, language, "summary")
     with b2:
-        if st.button("▶️ Dosage", use_container_width=True):
+        if st.button("▶️ Dosage", use_container_width=True, key=f"btn_dos_{key_suffix}"):
             speak_section(info, language, "dosage")
     with b3:
-        if st.button("▶️ Side Effects", use_container_width=True):
+        if st.button("▶️ Side Effects", use_container_width=True, key=f"btn_sid_{key_suffix}"):
             speak_section(info, language, "side_effects")
     with b4:
-        if st.button("▶️ Full Info", use_container_width=True):
+        if st.button("▶️ Full Info", use_container_width=True, key=f"btn_ful_{key_suffix}"):
             speak_section(info, language, "full")
 
     st.divider()
@@ -214,7 +214,7 @@ def main():
 
         # Show medicine card
         if st.session_state.get("searched") and "medicine_info" in st.session_state:
-            show_medicine_card(st.session_state["medicine_info"])
+            show_medicine_card(st.session_state["medicine_info"], key_suffix="search_tab")
 
     # ══════════════════════════════════════════════════════════
     # TAB 2 — Camera Scan
@@ -249,6 +249,10 @@ def main():
             st.image(image_to_scan, caption="Preview", width=400)
 
             if st.button("🔍 Scan & Identify", type="primary"):
+                # Clear previous selections when scanning a new image
+                st.session_state.pop("selected_candidate", None)
+                st.session_state.pop("scan_result", None)
+                
                 with st.spinner("Running OCR..."):
                     try:
                         img_bytes = image_to_scan.getvalue()
@@ -258,12 +262,16 @@ def main():
                             files=files,
                             timeout=30
                         )
-                        scan_result = response.json()
+                        st.session_state["scan_result"] = response.json()
                     except requests.exceptions.ConnectionError:
-                        scan_result = {"error": "Cannot connect to Flask backend."}
+                        st.session_state["scan_result"] = {"error": "Cannot connect to Flask backend."}
                     except Exception as e:
-                        scan_result = {"error": str(e)}
+                        st.session_state["scan_result"] = {"error": str(e)}
 
+            # Display results if available in session state
+            if "scan_result" in st.session_state:
+                scan_result = st.session_state["scan_result"]
+                
                 if "error" in scan_result:
                     st.error(f"❌ {scan_result['error']}")
 
@@ -281,20 +289,25 @@ def main():
                         for i, candidate in enumerate(candidates):
                             with btn_cols[i % 3]:
                                 if st.button(f"💊 {candidate}", key=f"c_{i}_{candidate}", use_container_width=True):
-                                    with st.spinner(f"Looking up {candidate}..."):
-                                     med = search_medicine(candidate)
-    
-                                    if med is None:
-                                        st.error("No response from backend.")
-                                    elif "error" in med:
-                                        st.warning(f"'{candidate}' not found in database.")
-                                        st.info("💡 Try searching manually in the 🔍 Search Medicine tab.")
-                                    else:
-                                        st.session_state["medicine_info"] = med
-                                        st.session_state["searched"]      = True
-                                        st.success(f"✅ Found: {med.get('name', candidate)}")
-                                        st.divider()
-                                        show_medicine_card(med)
+                                    st.session_state["selected_candidate"] = candidate
+                        
+                        # Process the selected candidate
+                        if "selected_candidate" in st.session_state:
+                            candidate = st.session_state["selected_candidate"]
+                            with st.spinner(f"Looking up {candidate}..."):
+                                med = search_medicine(candidate)
+
+                            if med is None:
+                                st.error("No response from backend.")
+                            elif "error" in med:
+                                st.warning(f"'{candidate}' not found in database.")
+                                st.info("💡 Try searching manually in the 🔍 Search Medicine tab.")
+                            else:
+                                st.session_state["medicine_info"] = med
+                                st.session_state["searched"]      = True
+                                st.success(f"✅ Found: {med.get('name', candidate)}")
+                                st.divider()
+                                show_medicine_card(med, key_suffix="scan_tab")
 
 
 if __name__ == "__main__":

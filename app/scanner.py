@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import re
 import os
+import difflib
 
 # ── WINDOWS ONLY — Uncomment if tesseract not found ──────────
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -102,18 +103,19 @@ def extract_text_from_image(image_input) -> dict:
         processed_image = preprocess_image(pil_image)
 
         # Run OCR with best config for medicine strips
-        # psm 6  = assume a uniform block of text
-        # psm 11 = sparse text (good for strips with scattered text)
-        # We try both and pick the one with more text
         config_block  = "--psm 6 --oem 3"
         config_sparse = "--psm 11 --oem 3"
 
+        # Try on processed image
         text_block  = pytesseract.image_to_string(processed_image, config=config_block)
         text_sparse = pytesseract.image_to_string(processed_image, config=config_sparse)
+        
+        # Try on raw unprocessed image (sometimes preprocessing destroys text in bad lighting)
+        text_raw = pytesseract.image_to_string(pil_image, config=config_sparse)
 
         # Use whichever gave more text
-        raw_text = text_block if len(text_block) >= len(text_sparse) else text_sparse
-        raw_text = raw_text.strip()
+        texts = [text_block, text_sparse, text_raw]
+        raw_text = max(texts, key=len).strip()
 
         if not raw_text:
             return {
@@ -145,66 +147,92 @@ def extract_medicine_candidates(raw_text: str) -> list:
     candidates = []
     text_lower = raw_text.lower()
     
-    # ── STEP 1: Direct keyword search in raw text ─────────────
-    # These are checked character by character in the OCR output
-    DIRECT_SEARCH = [
-        ("paracetamol",  "Paracetamol"),
-        ("dolo",         "Dolo 650"),
-        ("dolo-650",     "Dolo 650"),
-        ("dolo 650",     "Dolo 650"),
-        ("ibuprofen",    "Ibuprofen"),
-        ("crocin",       "Crocin"),
-        ("azithromycin", "Azithromycin"),
-        ("metformin",    "Metformin"),
-        ("pantoprazole", "Pantoprazole"),
-        ("amoxicillin",  "Amoxicillin"),
-        ("cetirizine",   "Cetirizine"),
-        ("omeprazole",   "Omeprazole"),
-        ("aspirin",      "Aspirin"),
-        ("combiflam",    "Combiflam"),
-        ("sinarest",     "Sinarest"),
-        ("allegra",      "Allegra"),
-    ]
+    # Extended list of common medicines to match against
+    KNOWN_MEDICINES = {
+        "paracetamol": "Paracetamol",
+        "dolo": "Dolo 650",
+        "dolo 650": "Dolo 650",
+        "dolo-650": "Dolo 650",
+        "ibuprofen": "Ibuprofen",
+        "crocin": "Crocin",
+        "azithromycin": "Azithromycin",
+        "azithral": "Azithromycin",
+        "metformin": "Metformin",
+        "glycomet": "Metformin",
+        "pantoprazole": "Pantoprazole",
+        "amoxicillin": "Amoxicillin",
+        "cetirizine": "Cetirizine",
+        "omeprazole": "Omeprazole",
+        "aspirin": "Aspirin",
+        "combiflam": "Combiflam",
+        "sinarest": "Sinarest",
+        "allegra": "Allegra",
+    }
     
-    for keyword, display_name in DIRECT_SEARCH:
+    # ── STEP 1: Direct exact match in the raw text ─────────────
+    for keyword, display_name in KNOWN_MEDICINES.items():
         if keyword in text_lower:
             if display_name not in candidates:
                 candidates.append(display_name)
+                
+    # ── STEP 2: Fuzzy matching against known medicines ─────────
+    # Helps correct minor OCR typos (e.g. "Paracetamo1" -> "Paracetamol")
+    words = re.findall(r'[a-z0-9]{4,}', text_lower)
+    known_keys = list(KNOWN_MEDICINES.keys())
     
-    # ── STEP 2: Regex pattern for "Name + Number" combos ──────
+    for word in words:
+        if word.isdigit():
+            continue
+        # Use difflib to find close matches
+        cutoff_val = 0.7 if len(word) <= 5 else 0.8
+        matches = difflib.get_close_matches(word, known_keys, n=1, cutoff=cutoff_val)
+        if matches:
+            matched_key = matches[0]
+            display_name = KNOWN_MEDICINES[matched_key]
+            if display_name not in candidates:
+                candidates.append(display_name)
+    
+    # ── STEP 3: Regex pattern for "Name + Number" combos ──────
     combo_matches = re.findall(
         r'([A-Za-z]{3,20})\s*[\-]?\s*(\d{2,4})\s*(mg|ml|g|mcg)?',
         raw_text, re.IGNORECASE
     )
+    
+    IGNORE_WORDS = {
+        "tablets", "tablet", "capsules", "capsule", "each",
+        "contains", "store", "keep", "children", "before",
+        "expiry", "batch", "mfg", "exp", "ltd", "pvt", "private", "limited",
+        "india", "pharma", "strip", "pack", "box", "use",
+        "the", "and", "with", "from", "drug", "price",
+        "read", "schedule", "prescription", "side", "uses",
+        "dosage", "warning", "mrp", "date", "rs", "inclusive",
+        "taxes", "all", "directed", "physician", "cool",
+        "dry", "place", "protect", "light", "moisture",
+        "manufacturing", "manufactured", "marketed", "registered",
+        "trademark", "composition", "base", "colour",
+        "approved", "colours", "mg", "ml"
+    }
+
     for match in combo_matches:
         name  = match[0].strip().title()
         num   = match[1].strip()
         combo = f"{name} {num}"
-        IGNORE = {"tablets", "tablet", "each", "strip", "pack", "price", "batch", "mfg", "exp"}
-        if name.lower() not in IGNORE and len(name) >= 3:
+        if name.lower() not in IGNORE_WORDS and len(name) >= 3:
             if combo not in candidates:
                 candidates.append(combo)
 
-    # ── STEP 3: If nothing found yet, return top words ────────
+    # ── STEP 4: If nothing found yet, return top words ────────
     if not candidates:
-        IGNORE_WORDS = {
-            "tablets", "tablet", "capsules", "capsule", "each",
-            "contains", "store", "keep", "children", "before",
-            "expiry", "batch", "mfg", "exp", "ltd", "pvt",
-            "india", "pharma", "strip", "pack", "box", "use",
-            "the", "and", "with", "from", "drug", "price",
-            "read", "schedule", "prescription", "side", "uses"
-        }
         lines = raw_text.split('\n')
         for line in lines[:8]:
-            words = re.findall(r'[A-Za-z]{4,20}', line)
-            for word in words:
+            line_words = re.findall(r'[A-Za-z]{4,20}', line)
+            for word in line_words:
                 if word.lower() not in IGNORE_WORDS:
                     titled = word.title()
                     if titled not in candidates:
                         candidates.append(titled)
 
-    # Remove duplicates
+    # Remove duplicates but preserve order
     seen   = set()
     unique = []
     for c in candidates:
