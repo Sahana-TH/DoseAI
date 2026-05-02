@@ -3,16 +3,19 @@
 # Improved accuracy with grayscale, thresholding, and noise removal.
 
 import pytesseract
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image
 import cv2
 import numpy as np
 import re
 import os
-import difflib
+import sys
 
-# ── WINDOWS ONLY — Uncomment if tesseract not found ──────────
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
+# ── AUTO-DETECT Tesseract path ────────────────────────────────
+# Windows
+if sys.platform == "win32":
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# Linux/Render — tesseract is in PATH after apt-get install
+# No need to set path on Linux
 
 def preprocess_image(image) -> Image.Image:
     """
