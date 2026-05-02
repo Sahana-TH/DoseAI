@@ -172,3 +172,42 @@ def scan_medicine_image():
 
     except Exception as e:
         return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
+    # ── ROUTE 6: Debug Tesseract ──────────────────────────────────
+@medicine_bp.route("/debug/tesseract", methods=["GET"])
+def debug_tesseract():
+    import subprocess
+    import sys
+
+    results = {
+        "platform": sys.platform,
+        "paths": {},
+        "which": None,
+        "version": None
+    }
+
+    for path in [
+        "/usr/bin/tesseract",
+        "/usr/local/bin/tesseract",
+        "/opt/render/project/.apt/usr/bin/tesseract"
+    ]:
+        results["paths"][path] = os.path.exists(path)
+
+    try:
+        r = subprocess.run(
+            ["which", "tesseract"],
+            capture_output=True, text=True, timeout=5
+        )
+        results["which"] = r.stdout.strip() or "not found"
+    except Exception as e:
+        results["which"] = str(e)
+
+    try:
+        r = subprocess.run(
+            ["tesseract", "--version"],
+            capture_output=True, text=True, timeout=5
+        )
+        results["version"] = r.stdout[:100] or r.stderr[:100]
+    except Exception as e:
+        results["version"] = str(e)
+
+    return jsonify(results)
